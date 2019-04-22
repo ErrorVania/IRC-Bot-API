@@ -1,4 +1,7 @@
-import socket, threading
+import socket, threading, importlib
+import handler
+
+
 
 class IRC_Bot(threading.Thread):
     def __init__(self, server,port,name,channel,admin,exitcode="bye"):
@@ -10,19 +13,14 @@ class IRC_Bot(threading.Thread):
         self.admin = admin
         self.exitcode = exitcode
         self.ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.run()
-
-
-    def send():
-        self.ircsock.send(bytes("PRIVMSG " + self.channel + " :" + self.message + "\n","UTF-8"))
-
 
     def run(self):
         
+
+
+
         conntuple = (self.server,self.port)
         botnick = self.name
-
-
 
         self.ircsock.connect(conntuple)
         self.ircsock.send(bytes("USER " + botnick + " " + botnick + " " + botnick + " " + botnick + "\n","UTF-8"))
@@ -48,47 +46,39 @@ class IRC_Bot(threading.Thread):
             elif chunk[1] == "NICK":
                 raw = chunk[0]
                 name = raw[raw.find(":")+1:raw.find("!")]
-                print("[!] [" + name + "] changed name to: " + chunk[2][1:])
+                print("[!] [" + name + "] changed name to: " + " ".join(chunk[2:])[1:])
             elif chunk[1] == "JOIN":
                 raw = chunk[0]
                 name = raw[raw.find(":")+1:raw.find("!")]
-                print("[!] [" + name + "] joined channel: " + chunk[2][1:])
+                print("[!] [" + name + "] joined channel: " + " ".join(chunk[2:])[1:])
             elif chunk[1] == "PART":
                 raw = chunk[0]
                 name = raw[raw.find(":")+1:raw.find("!")]
-                print("[!] [" + name + "] left the channel: " + chunk[2][1:])
+                print("[!] [" + name + "] left the channel: " + " ".join(chunk[2:])[1:])
             elif chunk[1] == "QUIT":
                 raw = chunk[0]
                 name = raw[raw.find(":")+1:raw.find("!")]
-                print("[!] [" + name + "] disconnected: " + chunk[2][1:])
+                print("[!] [" + name + "] disconnected: " + " ".join(chunk[2:])[1:])
 
-            elif chunk[1] == 'PRIVMSG':
-
-                if chunk[2] == self.channel:
-            
-                    first = chunk[0]
-                    chunk.remove(chunk[0])
-                    chunk.remove(chunk[1])
-                    chunk.remove("PRIVMSG")
-
-                    name = first[first.find(":")+1:first.find("!")]
-                    print("<" +  name + "> " + " ".join(chunk)[1:])
-
-
-
-
-
-                    #commands start here, chunk[0] will be the first word
-                    if chunk[0] == ":!" + self.exitcode and name == self.admin:
-                        self.ircsock.close()
-
+            elif chunk[1] == "PRIVMSG":
+                try:
+                    importlib.reload(handler)
+                    handler.handle(chunk, chunk[2], self.name, self.ircsock, self.exitcode, self.admin)
+                except Exception as e:
+                    pass
             else:
                 print(str(chunk)) #print unknown commands
-    
+
+bot1 = IRC_Bot("chat.freenode.net",6667,"pybot010101","##bot-testing","botadmin")
+bot1.start()
 
 
-    
 
 
 
-bot1 = IRC_Bot("chat.freenode.net",6667,"pybotAAA","##bot-testing","botadmin")
+
+
+
+while 1:
+    a = input("")
+    bot1.ircsock.send(bytes("PRIVMSG " + bot1.channel + " :" + a + "\n","UTF-8"))
